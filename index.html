@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Challenge Sport V5.20</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    :root {
+      --bg:#f4f6fb;
+      --card:#ffffff;
+      --label:#111827;
+      --label-2:#6b7280;
+      --label-3:#9ca3af;
+      --sep:#e5e7eb;
+      --accent:#2563eb;
+      --accent-2:#7c3aed;
+      --green:#16a34a;
+      --red:#dc2626;
+      --orange:#f59e0b;
+      --fill:#eef2f7;
+      --shadow: 0 18px 35px rgba(15,23,42,.10);
+    }
+    html.dark {
+      --bg:#070a12;
+      --card:#111827;
+      --label:#f9fafb;
+      --label-2:#a1a1aa;
+      --label-3:#71717a;
+      --sep:#27272a;
+      --fill:#1f2937;
+      --shadow: 0 18px 35px rgba(0,0,0,.35);
+    }
+    body {
+      font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,.20), transparent 35%),
+        radial-gradient(circle at top right, rgba(124,58,237,.14), transparent 35%),
+        var(--bg);
+      color:var(--label);
+      min-height:100dvh;
+      max-width:430px;
+      margin:0 auto;
+      padding:0 18px 100px;
+    }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+    .view { display:none; flex-direction:column; }
+    .view.active { display:flex; }
+    .page-wrap { padding-top:44px; display:flex; flex-direction:column; gap:22px; }
+    .top-row {
+      display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+      position:sticky; top:0; z-index:45;
+      padding:12px 0 10px; margin:-12px 0 -4px;
+      background:linear-gradient(180deg, var(--bg) 72%, rgba(244,246,251,0));
+      backdrop-filter:blur(10px);
+    }
+    html.dark .top-row { background:linear-gradient(180deg, var(--bg) 72%, rgba(7,10,18,0)); }
+    .top-row h1 { font-size:28px; font-weight:800; letter-spacing:-.8px; line-height:1; }
+    .muted { color:var(--label-2); }
+    .small { font-size:13px; }
+    .eyebrow {
+      color:var(--accent); font-size:12px; font-weight:800; text-transform:uppercase;
+      letter-spacing:.08em; margin-bottom:6px;
+    }
+    .card {
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(255,255,255,.75);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    html.dark .card { background:rgba(17,24,39,.9); border-color:rgba(255,255,255,.08); }
+    .hero-card {
+      background:linear-gradient(135deg, rgba(37,99,235,.13), rgba(124,58,237,.11)), var(--card);
+    }
+    .hero { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 0 2px; }
+    .hero-num { font-size:72px; font-weight:850; letter-spacing:-3px; line-height:1; font-variant-numeric:tabular-nums; }
+    .hero-sub { font-size:15px; color:var(--label-2); }
+    .bar-track { width:100%; height:8px; background:var(--fill); border-radius:100px; overflow:hidden; }
+    .bar-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:100px; transition:width .4s ease; }
+    .progress-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .progress-pct { color:var(--accent); font-size:13px; font-weight:800; }
+    .progress-remain { color:var(--label-2); font-size:13px; }
+    .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .stat {
+      background:var(--card); border:1px solid var(--sep); border-radius:18px; padding:12px 10px;
+      text-align:center;
+    }
+    .stat .v { font-size:20px; font-weight:800; }
+    .stat .l { margin-top:2px; font-size:12px; color:var(--label-2); }
+    .challenge-badge {
+      display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px;
+      background:rgba(37,99,235,.10); color:var(--accent); font-size:13px; font-weight:800;
+    }
+    .bonus-badge {
+      display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px;
+      background:rgba(245,158,11,.13); color:var(--orange); font-size:13px; font-weight:800;
+    }
+    .row-between { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .movement-grid { display:grid; gap:12px; }
+    .movement-card {
+      background:var(--card); border:1px solid var(--sep); border-radius:20px; padding:14px;
+    }
+    .movement-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .movement-title { font-size:16px; font-weight:800; }
+    .movement-weight { color:var(--label-2); font-size:12px; }
+    .presets { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:8px; }
+    .preset-btn {
+      border:0; border-radius:14px; padding:13px 4px; background:var(--fill); color:var(--label);
+      font-size:16px; font-weight:800; transition:transform .1s, opacity .1s;
+    }
+    .preset-btn:active { transform:scale(.94); opacity:.65; }
+    .custom-row { display:flex; gap:8px; }
+    .field {
+      width:100%; border:1px solid var(--sep); border-radius:16px; background:var(--card); color:var(--label);
+      padding:14px 14px; outline:none;
+    }
+    .field:focus { border-color:var(--accent); box-shadow:0 0 0 4px rgba(37,99,235,.12); }
+    .add-btn {
+      min-width:58px; border:0; border-radius:16px; padding:0 16px; color:white; font-weight:900;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    }
+    .primary-btn {
+      width:100%; border:0; border-radius:18px; padding:15px 16px; color:white; font-weight:850;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 14px 26px rgba(37,99,235,.25);
+    }
+    .ghost-btn {
+      border:1px solid var(--sep); border-radius:16px; padding:12px 14px; background:var(--card); color:var(--label); font-weight:750;
+    }
+    .danger-btn {
+      width:100%; border:0; border-radius:16px; padding:14px; background:rgba(220,38,38,.10); color:var(--red); font-weight:800;
+    }
+    .section-title {
+      font-size:13px; color:var(--label-2); text-transform:uppercase; letter-spacing:.08em; font-weight:800; margin-bottom:12px;
+    }
+    .history-item,.lb-item,.settings-row {
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:13px 0; border-bottom:1px solid var(--sep);
+    }
+    .history-item:last-child,.lb-item:last-child,.settings-row:last-child { border-bottom:0; }
+    .list-empty { font-size:15px; color:var(--label-3); text-align:center; padding:18px 0; }
+    .lb-list { display:flex; flex-direction:column; }
+    .lb-item { align-items:center; }
+    .lb-item.me { background:var(--fill); border-radius:18px; padding:13px; margin:0 -8px 6px; border-bottom:0; }
+    .lb-rank { width:28px; text-align:center; font-weight:900; color:var(--label-3); }
+    .avatar {
+      width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:#fff; display:grid; place-items:center; font-weight:900; flex-shrink:0; overflow:hidden;
+    }
+    .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .avatar-upload-row { display:flex; align-items:center; gap:12px; margin-top:10px; }
+    .avatar-preview { width:54px; height:54px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:white; display:grid; place-items:center; font-weight:900; overflow:hidden; flex-shrink:0; }
+    .avatar-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+    .hidden-file { display:none; }
+    .lb-info { flex:1; min-width:0; }
+    .lb-name-row { display:flex; align-items:center; gap:6px; min-width:0; }
+    .lb-name { font-size:16px; font-weight:850; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mini-meta { font-size:12px; color:var(--label-2); margin-top:3px; display:flex; gap:6px; flex-wrap:wrap; }
+    .mini-bar { height:4px; background:var(--fill); border-radius:100px; overflow:hidden; margin-top:7px; }
+    .mini-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:100px; }
+    .lb-points { text-align:right; font-size:15px; font-weight:900; flex-shrink:0; }
+    .rank-change.up { color:var(--green); }
+    .rank-change.down { color:var(--red); }
+    .rank-change.stable { color:var(--label-3); }
+    .bonus-list { display:grid; gap:10px; }
+    .bonus-item {
+      background:var(--fill); border-radius:16px; padding:12px; font-size:13px;
+    }
+    .bonus-item strong { display:block; margin-bottom:4px; }
+    .modal-backdrop {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; padding:20px;
+      align-items:flex-end; justify-content:center;
+    }
+    .modal-backdrop.show { display:flex; }
+    .modal {
+      width:100%; max-width:430px; max-height:82dvh; overflow:auto; background:var(--card); color:var(--label);
+      border-radius:28px 28px 0 0; padding:20px; box-shadow:var(--shadow);
+    }
+    .graph {
+      height:120px; background:var(--fill); border-radius:18px; display:flex; align-items:end; gap:5px; padding:12px; margin-top:12px;
+    }
+    .graph-bar { flex:1; min-height:4px; background:linear-gradient(180deg,var(--accent-2),var(--accent)); border-radius:999px; }
+
+    .daily-chart { position:relative; height:220px; background:var(--fill); border-radius:18px; padding:24px 10px 42px; margin-top:12px; overflow:hidden; }
+    .daily-chart-bars { position:absolute; left:10px; right:10px; bottom:42px; top:24px; display:flex; align-items:flex-end; gap:7px; z-index:2; }
+    .daily-bar-wrap { flex:1; min-width:18px; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; position:relative; }
+    .daily-bar-value { position:absolute; top:-18px; font-size:10px; font-weight:900; color:var(--label); white-space:nowrap; }
+    .daily-bar { width:100%; min-height:4px; border-radius:999px 999px 4px 4px; background:linear-gradient(180deg,var(--accent-2),var(--accent)); }
+    .daily-bar.bonus { background:linear-gradient(180deg,#fbbf24,#f59e0b); }
+    .daily-x { position:absolute; left:10px; right:10px; bottom:8px; display:flex; gap:7px; z-index:3; }
+    .daily-x-item { flex:1; min-width:18px; text-align:center; font-size:9px; color:var(--label-2); line-height:1.15; }
+    .daily-curve { position:absolute; left:10px; right:10px; bottom:42px; top:24px; z-index:4; pointer-events:none; overflow:visible; }
+    .chart-legend { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; font-size:12px; color:var(--label-2); font-weight:800; }
+    .legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .auth-screen {
+      min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:30px 0;
+    }
+    .auth-card { width:100%; }
+    .auth-logo {
+      width:72px; height:72px; border-radius:24px; background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:white; display:grid; place-items:center; font-size:34px; margin:0 auto 18px; box-shadow:var(--shadow);
+    }
+    .auth-title { text-align:center; font-size:28px; font-weight:900; letter-spacing:-.8px; margin-bottom:6px; }
+    .auth-sub { text-align:center; color:var(--label-2); margin-bottom:18px; }
+    .message { padding:12px 14px; background:var(--fill); border-radius:14px; color:var(--label); font-size:14px; margin-top:12px; }
+    .theme-row { display:flex; align-items:center; justify-content:space-between; }
+    .segmented { display:flex; background:var(--fill); border-radius:12px; padding:3px; gap:2px; }
+    .seg-btn { border:0; border-radius:9px; padding:8px 12px; background:transparent; color:var(--label-2); font-weight:750; }
+    .seg-btn.active { background:var(--card); color:var(--label); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .tab-bar {
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:430px;
+      display:flex; border-top:1px solid var(--sep); background:rgba(244,246,251,.92);
+      backdrop-filter:blur(12px); padding-bottom:env(safe-area-inset-bottom,0px); z-index:50;
+    }
+    html.dark .tab-bar { background:rgba(7,10,18,.92); }
+    .tab-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+      padding:10px 0 12px; border:0; background:transparent; color:var(--label-3);
+    }
+    .tab-btn span:first-child { font-size:22px; }
+    .tab-btn span:last-child { font-size:11px; font-weight:800; }
+    .tab-btn.active { color:var(--accent); }
+    .toast {
+      position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(12px);
+      background:var(--label); color:var(--bg); padding:10px 18px; border-radius:999px;
+      font-size:14px; font-weight:800; opacity:0; pointer-events:none; z-index:999; transition:.2s;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .splash {
+      position:fixed; inset:0; background:var(--bg); display:flex; align-items:center; justify-content:center; z-index:500;
+    }
+    .splash.hidden { display:none; }
+    .spinner {
+      width:34px; height:34px; border:3px solid var(--fill); border-top-color:var(--accent); border-radius:50%;
+      animation:spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    .leaderboard-switch {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      background:var(--fill);
+      border-radius:18px;
+      padding:4px;
+      margin-bottom:14px;
+    }
+    .leaderboard-switch button {
+      border:0;
+      border-radius:14px;
+      padding:11px 10px;
+      background:transparent;
+      color:var(--label-2);
+      font-weight:850;
+    }
+    .leaderboard-switch button.active {
+      background:var(--card);
+      color:var(--accent);
+      box-shadow:0 6px 16px rgba(15,23,42,.08);
+    }
+    .weekly-champs {
+      display:grid;
+      gap:10px;
+    }
+    .champ-card {
+      background:var(--fill);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .champ-title {
+      font-size:13px;
+      color:var(--label-2);
+      font-weight:800;
+      margin-bottom:4px;
+    }
+    .champ-name {
+      font-size:15px;
+      font-weight:900;
+    }
+    .champ-value {
+      font-weight:900;
+      color:var(--accent);
+      white-space:nowrap;
+    }
+    .locked-contract {
+      background:var(--fill);
+      border-radius:18px;
+      padding:14px;
+      margin-top:8px;
+    }
+    .locked-contract strong {
+      display:block;
+      font-size:17px;
+      margin-bottom:4px;
+    }
+    .week-complete-grid {
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:6px;
+      margin-top:12px;
+    }
+    .week-day-chip {
+      border:1px solid var(--sep);
+      background:var(--card);
+      border-radius:14px;
+      padding:8px 2px;
+      text-align:center;
+      min-height:58px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:4px;
+    }
+    .week-day-chip.ok { background:rgba(22,163,74,.12); border-color:rgba(22,163,74,.28); color:var(--green); }
+    .week-day-chip.miss { background:rgba(220,38,38,.10); border-color:rgba(220,38,38,.20); color:var(--red); }
+    .week-day-chip.future { opacity:.62; }
+    .week-day-name { font-size:10px; font-weight:900; text-transform:uppercase; }
+    .week-day-status { font-size:18px; font-weight:900; line-height:1; }
+    .week-complete-summary {
+      margin-top:12px;
+      background:var(--fill);
+      border-radius:16px;
+      padding:12px;
+      font-size:13px;
+      color:var(--label-2);
+      line-height:1.35;
+    }
+
+
+    /* ══ FEED & ONBOARDING V5 ══ */
+    .feed-list { display:grid; gap:12px; }
+    .feed-item {
+      display:flex; gap:12px; align-items:flex-start; background:var(--card);
+      border:1px solid var(--sep); border-radius:18px; padding:14px;
+    }
+    .feed-icon {
+      width:38px; height:38px; border-radius:14px; display:grid; place-items:center;
+      background:linear-gradient(135deg, rgba(37,99,235,.14), rgba(124,58,237,.12));
+      flex-shrink:0; font-size:20px;
+    }
+    .feed-body { flex:1; min-width:0; }
+    .feed-message { font-weight:850; line-height:1.25; }
+    .feed-meta { margin-top:4px; font-size:12px; color:var(--label-2); }
+    .comment-toggle {
+      margin-top:10px; border:0; background:transparent; color:var(--accent);
+      font-size:13px; font-weight:850; padding:0;
+    }
+    .feed-comments { margin-top:10px; display:grid; gap:8px; }
+    .feed-comment {
+      background:var(--fill); border-radius:14px; padding:9px 10px; font-size:13px;
+    }
+    .feed-comment strong { font-weight:900; }
+    .feed-comment span { color:var(--label-2); }
+    .comment-box { display:none; margin-top:10px; gap:8px; }
+    .comment-box.show { display:grid; }
+    .comment-input-row { display:flex; gap:8px; align-items:center; }
+    .comment-input-row input { flex:1; padding:11px 12px; border-radius:14px; }
+    .comment-send-btn {
+      border:0; border-radius:14px; padding:11px 12px; color:white; font-weight:900;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    }
+
+    .feed-composer { display:grid; gap:10px; }
+    .feed-textarea {
+      width:100%; min-height:86px; resize:vertical; border:1px solid var(--sep);
+      border-radius:16px; background:var(--card); color:var(--label); padding:13px 14px; outline:none;
+    }
+    .feed-textarea:focus { border-color:var(--accent); box-shadow:0 0 0 4px rgba(37,99,235,.12); }
+    .feed-post-actions { display:flex; gap:8px; align-items:center; }
+    .feed-photo-preview {
+      display:none; width:100%; max-height:220px; object-fit:cover; border-radius:18px;
+      border:1px solid var(--sep); margin-top:2px;
+    }
+    .feed-photo-preview.show { display:block; }
+    .feed-image {
+      width:100%; max-height:260px; object-fit:cover; border-radius:18px;
+      margin-top:10px; border:1px solid var(--sep); display:block;
+    }
+
+    .onboarding-status {
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      background:var(--fill); border-radius:18px; padding:14px; margin-top:10px;
+    }
+    .question-list { display:grid; gap:10px; margin-top:14px; }
+    .question-item {
+      display:flex; align-items:flex-start; gap:10px; background:var(--fill);
+      border-radius:16px; padding:12px; font-size:14px;
+    }
+    .question-item input { margin-top:2px; transform:scale(1.1); }
+    .score-preview {
+      margin-top:14px; padding:14px; border-radius:18px; background:linear-gradient(135deg, rgba(37,99,235,.12), rgba(124,58,237,.10));
+      font-weight:900; text-align:center;
+    }
+    .tab-bar.four-tabs .tab-btn span:first-child { font-size:20px; }
+    .tab-bar.four-tabs .tab-btn span:last-child { font-size:10px; }
+
+  
+
+    /* ══ V5.11 graphique profil lisible ══ */
+    .daily-chart-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:6px; margin-top:12px; }
+    .daily-chart-v511 { position:relative; height:260px; background:var(--fill); border-radius:18px; padding:28px 12px 50px; min-width:520px; overflow:hidden; }
+    .daily-chart-bars-v511 { position:absolute; left:12px; right:12px; bottom:50px; top:28px; display:flex; align-items:flex-end; gap:8px; z-index:2; }
+    .daily-day-group { flex:0 0 42px; height:100%; display:flex; align-items:flex-end; justify-content:center; gap:4px; position:relative; }
+    .daily-single-bar { width:16px; min-height:4px; border-radius:999px 999px 5px 5px; position:relative; }
+    .daily-single-bar.session { background:linear-gradient(180deg,var(--accent-2),var(--accent)); }
+    .daily-single-bar.bonus { background:linear-gradient(180deg,#fbbf24,#f59e0b); }
+    .daily-single-value { position:absolute; top:-18px; left:50%; transform:translateX(-50%); font-size:9px; font-weight:900; color:var(--label); white-space:nowrap; }
+    .daily-x-v511 { position:absolute; left:12px; right:12px; bottom:10px; display:flex; gap:8px; z-index:3; }
+    .daily-x-item-v511 { flex:0 0 42px; text-align:center; font-size:9px; color:var(--label-2); line-height:1.15; }
+    .daily-curve-v511 { position:absolute; left:12px; right:12px; bottom:50px; top:28px; z-index:4; pointer-events:none; overflow:visible; }
+    .daily-detail-list { display:grid; gap:10px; margin-top:14px; }
+    .daily-detail-card { background:var(--fill); border-radius:16px; padding:12px; }
+    .daily-detail-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+    .daily-detail-date { font-weight:900; }
+    .daily-detail-total { color:var(--accent); font-weight:900; }
+    .daily-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:13px; color:var(--label-2); }
+
+    .daily-curve-dot { fill:#16a34a; stroke:#ffffff; stroke-width:1.2; vector-effect:non-scaling-stroke; }
+    .daily-curve-labels { position:absolute; left:12px; right:12px; bottom:50px; top:28px; z-index:5; pointer-events:none; }
+    .daily-curve-label { display:none; }
+    .daily-pct-label { position:absolute; top:4px; left:50%; transform:translateX(-50%); font-size:9px; font-weight:900; color:#16a34a; background:rgba(255,255,255,.86); border-radius:999px; padding:1px 4px; white-space:nowrap; z-index:6; }
+    .daily-pct-label.edge-left { transform:translateX(0); }
+    .daily-pct-label.edge-right { transform:translateX(-100%); }
+    .daily-day-group:first-child .daily-pct-label { left:0; transform:none; }
+    .daily-day-group:last-child .daily-pct-label { left:auto; right:0; transform:none; }
+    html.dark .daily-pct-label { background:rgba(17,24,39,.86); }
+
+
+    /* ══ V5.18 zoom photo profil ══ */
+    #photoZoomModal {
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.88); z-index:99999; padding:20px;
+    }
+    #photoZoomModal.show { display:flex; }
+    #photoZoomModal img { max-width:95vw; max-height:90vh; border-radius:18px; box-shadow:0 20px 50px rgba(0,0,0,.45); }
+    #photoZoomClose {
+      position:absolute; top:25px; right:25px; width:42px; height:42px; border:0;
+      border-radius:50%; background:#fff; color:#111827; font-size:28px; font-weight:900;
+      display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:100000;
+    }
+
+  </style>
+</head>
+<body>
+<div class="splash" id="splash"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<div id="authRoot" class="auth-screen" style="display:none">
+  <section class="card auth-card">
+    <div class="auth-logo">🔥</div>
+    <h1 class="auth-title">Challenge Sport</h1>
+    <p class="auth-sub">Choisis ton contrat, marque tes points, grimpe au classement.</p>
+
+    <input class="field" id="authEmail" type="email" placeholder="Email" style="margin-bottom:10px" />
+    <input class="field" id="authPassword" type="password" placeholder="Mot de passe" style="margin-bottom:10px" />
+    <input class="field" id="authPseudo" type="text" placeholder="Pseudo (inscription)" style="margin-bottom:10px" />
+
+    <select class="field" id="authChallenge" style="margin-bottom:12px">
+      <option value="pushups">Contrat 1 — 100% Pompes OU DC</option>
+      <option value="duo">Contrat 2 — Pompes OU DC + Tractions</option>
+      <option value="trio">Contrat 3 — Pompes OU DC + Tractions + Jambes</option>
+      <option value="pushlegs">Contrat 4 — Pompes OU DC + Jambes</option>
+    </select>
+
+    <button class="primary-btn" id="loginBtn">Se connecter</button>
+    <button class="ghost-btn" id="signupBtn" style="width:100%;margin-top:10px">Créer un compte</button>
+    <div id="authMessage"></div>
+  </section>
+</div>
+
+<div id="appRoot" style="display:none">
+
+  <div class="view" id="view-feed">
+    <div class="page-wrap">
+      <div class="top-row">
+        <div>
+          <div class="eyebrow">Activité</div>
+          <h1>Feed</h1>
+        </div>
+        <button class="ghost-btn" onclick="refreshFeed()">Actualiser</button>
+      </div>
+
+      <section class="card hero-card" id="onboardingFeedCard">
+        <div class="row-between">
+          <div>
+            <div class="section-title" style="margin-bottom:6px">Équilibrage</div>
+            <strong id="feedOnboardingTitle">Questionnaire de départ</strong>
+            <div class="muted small" id="feedOnboardingText" style="margin-top:4px">Ajuste ton score avant de lancer le défi.</div>
+          </div>
+          <button class="ghost-btn" id="feedOnboardingBtn" onclick="showOnboardingModal()">Remplir</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Publier dans le Feed</div>
+        <div class="feed-composer">
+          <textarea class="feed-textarea" id="feedPostText" placeholder="Partage une séance, une motivation, une photo, une punchline…"></textarea>
+          <img class="feed-photo-preview" id="feedPhotoPreview" alt="Aperçu publication" />
+          <input class="hidden-file" id="feedPostFile" type="file" accept="image/*" />
+          <div class="feed-post-actions">
+            <button class="ghost-btn" id="chooseFeedPhotoBtn" type="button" style="flex:1">📷 Photo</button>
+            <button class="primary-btn" id="publishFeedPostBtn" type="button" style="flex:1">Publier</button>
+          </div>
+          <div class="muted small">Tu peux publier un message seul, une photo seule, ou les deux.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Activité générale</div>
+        <div class="feed-list" id="globalFeedList"><div class="list-empty">Aucune activité pour le moment</div></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="view" id="view-counter">
+    <div class="page-wrap">
+      <div class="top-row">
+        <div>
+          <div class="eyebrow" id="challengeLabelTop">Contrat</div>
+          <h1>Compteur</h1>
+        </div>
+        <button class="ghost-btn" onclick="switchTab('settings')">Réglages</button>
+      </div>
+
+      <section class="card hero-card">
+        <div class="row-between" style="margin-bottom:14px">
+          <div>
+            <div class="challenge-badge" id="challengeBadge">Défi</div>
+          </div>
+          <div class="bonus-badge" id="bonusBadge">⭐ 0 bonus</div>
+        </div>
+        <div class="hero">
+          <div class="hero-num" id="heroNum">0</div>
+          <div class="hero-sub" id="heroSub">points sur 10 000</div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="progress-row">
+            <span class="progress-pct" id="pct">0%</span>
+            <span class="progress-remain" id="remain">10 000 pts restants</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        </div>
+      </section>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="statToday">0</div><div class="l">pts aujourd’hui</div><div class="small muted" id="statTodayDetails" style="margin-top:4px;line-height:1.25">0 pompes · 0 tractions · 0 jambes</div></div>
+        <div class="stat"><div class="v" id="statSessions">0</div><div class="l">sessions</div></div>
+        <div class="stat"><div class="v" id="statStreak">—</div><div class="l">série</div></div>
+      </div>
+
+      <section class="card hero-card">
+        <div class="row-between">
+          <div>
+            <div class="section-title" style="margin-bottom:6px">Bonus semaine complète</div>
+            <strong id="weekCompleteTitle">Objectif 7/7</strong>
+            <div class="muted small" id="weekCompleteText" style="margin-top:4px">Au moins 1 mouvement concerné chaque jour.</div>
+          </div>
+          <div class="bonus-badge" id="weekCompleteBadge">⭐ +100</div>
+        </div>
+        <div class="week-complete-grid" id="weekCompleteGrid"></div>
+        <div class="week-complete-summary" id="weekCompleteSummary"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Ajouter une session</div>
+        <div class="movement-grid" id="movementGrid"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Historique</div>
+        <div id="historyList"><div class="list-empty">Aucune session</div></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="view" id="view-lb">
+    <div class="page-wrap">
+      <div class="top-row">
+        <h1>Classement</h1>
+        <button class="ghost-btn" onclick="loadLeaderboard()">Actualiser</button>
+      </div>
+
+      <section class="card">
+        <div class="leaderboard-switch">
+          <button id="rankModeGlobal" class="active" onclick="setLeaderboardMode('global')">🏆 Général</button>
+          <button id="rankModeWeek" onclick="setLeaderboardMode('week')">📅 Semaine</button>
+        </div>
+        <div class="section-title" id="rankingTitle">Participants</div>
+        <div class="lb-list" id="lbList"><div class="list-empty">Chargement…</div></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Champions de la semaine</div>
+        <div class="weekly-champs" id="weeklyChampions"></div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Bonus disponibles</div>
+        <div class="bonus-list" id="bonusRulesList"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="view" id="view-settings">
+    <div class="page-wrap">
+      <div class="top-row"><h1>Paramètres</h1></div>
+
+      <section class="card">
+        <div class="section-title">Compte</div>
+        <div class="settings-row">
+          <div>
+            <strong id="profilePseudo">—</strong>
+            <div class="muted small" id="profileEmail">—</div>
+          </div>
+        </div>
+        <label class="small muted">Photo de profil</label>
+        <div class="avatar-upload-row">
+          <div class="avatar-preview" id="avatarPreview">?</div>
+          <div style="flex:1">
+            <button class="ghost-btn" id="chooseAvatarBtn" style="width:100%" type="button">📷 Changer ma photo</button>
+            <div class="muted small" id="avatarHelp" style="margin-top:6px">Depuis l’iPhone : caméra ou galerie.</div>
+          </div>
+        </div>
+        <input class="hidden-file" id="avatarFile" type="file" accept="image/*" />
+        <label class="small muted" style="display:block;margin-top:14px">Contrat choisi</label>
+        <div class="locked-contract" id="lockedChallengeBox">
+          <strong id="lockedChallengeName">—</strong>
+          <span class="muted small">Contrat verrouillé après inscription</span>
+        </div>
+        <button class="primary-btn" id="saveProfileBtn" style="margin-top:12px">Enregistrer la photo</button>
+      </section>
+
+
+      <section class="card">
+        <div class="section-title">Questionnaire d’équilibrage</div>
+        <div class="onboarding-status">
+          <div>
+            <strong id="onboardingSettingsStatus">Statut : —</strong>
+            <div class="muted small" id="onboardingSettingsScore" style="margin-top:4px">Score : —</div>
+          </div>
+          <button class="ghost-btn" id="settingsOnboardingBtn" onclick="showOnboardingModal()">Remplir</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Apparence</div>
+        <div class="theme-row">
+          <span class="muted" id="themeLbl">Automatique</span>
+          <div class="segmented">
+            <button class="seg-btn active" data-theme="auto">Auto</button>
+            <button class="seg-btn" data-theme="light">Clair</button>
+            <button class="seg-btn" data-theme="dark">Sombre</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-title">Correction</div>
+        <button class="danger-btn" id="deleteLastBtn">Supprimer ma dernière saisie</button>
+      </section>
+
+      <button class="ghost-btn" id="signoutBtn" style="width:100%">Se déconnecter</button>
+    </div>
+  </div>
+
+  <nav class="tab-bar four-tabs">
+    <button class="tab-btn active" id="tab-feed" onclick="switchTab('feed')"><span>📰</span><span>Feed</span></button>
+    <button class="tab-btn" id="tab-counter" onclick="switchTab('counter')"><span>🔥</span><span>Compteur</span></button>
+    <button class="tab-btn" id="tab-lb" onclick="switchTab('lb')"><span>🏆</span><span>Classement</span></button>
+    <button class="tab-btn" id="tab-settings" onclick="switchTab('settings')"><span>⚙️</span><span>Réglages</span></button>
+  </nav>
+</div>
+
+<div class="modal-backdrop" id="playerModal" onclick="closePlayerModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="row-between" style="margin-bottom:14px">
+      <h2 id="modalTitle">Joueur</h2>
+      <button class="ghost-btn" onclick="hidePlayerModal()">Fermer</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+
+
+<div id="photoZoomModal" onclick="hidePhotoZoom()">
+  <button id="photoZoomClose" onclick="hidePhotoZoom(); event.stopPropagation();">×</button>
+  <img id="photoZoomImg" src="" alt="Photo de profil agrandie" onclick="event.stopPropagation()" />
+</div>
+
+<div class="modal-backdrop" id="onboardingModal" onclick="closeOnboardingModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="row-between" style="margin-bottom:14px">
+      <div>
+        <div class="eyebrow">Équilibrage</div>
+        <h2>Questionnaire de départ</h2>
+      </div>
+      <button class="ghost-btn" onclick="hideOnboardingModal()">Plus tard</button>
+    </div>
+    <p class="muted small">Réponds une seule fois. Le résultat peut être positif ou négatif et sera ajouté définitivement à ton score.</p>
+    <div class="question-list" id="onboardingQuestions"></div>
+    <div class="score-preview" id="onboardingScorePreview">Le résultat sera affiché après validation définitive.</div>
+    <button class="primary-btn" id="submitOnboardingBtn" style="margin-top:12px" onclick="submitOnboarding()">Valider définitivement</button>
+    <button class="ghost-btn" style="width:100%;margin-top:10px" onclick="hideOnboardingModal()">Remplir plus tard</button>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL  = 'https://bpzwygfvzmejjpyhsgge.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_bPRaHKTKlhrxM6b8saCZuA_LV0RkHE7';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  const WEIGHTS = { pushups: 1, pullups: 2, legs: 0.5 };
+  const GOAL_POINTS = 10000;
+
+  const CHALLENGES = {
+    pushups: { label:'100% Pompes OU DC', short:'Pompes OU DC', emoji:'💪', movements:['pushups'] },
+    duo: { label:'Pompes OU DC + Tractions', short:'Duo', emoji:'⚡', movements:['pushups','pullups'] },
+    pushlegs: { label:'Pompes OU DC + Jambes', short:'Pompes/Jambes', emoji:'🦵', movements:['pushups','legs'] },
+    trio: { label:'Pompes OU DC + Tractions + Jambes', short:'Trio', emoji:'🔥', movements:['pushups','pullups','legs'] }
+  };
+
+  const MOVEMENTS = {
+    pushups: { label:'Pompes OU DC', emoji:'💪', presets:[10,25,50,100], unit:'pompes OU DC' },
+    pullups: { label:'Tractions', emoji:'🧗', presets:[1,3,5,10], unit:'tractions' },
+    legs: { label:'Jambes', emoji:'🦵', presets:[20,50,100,150], unit:'squats/fentes' }
+  };
+
+  const BONUS_RULES = {
+    pushups: [
+      { code:'PUSH_7X100', name:'Semaine complète', points:100, desc:'7 jours avec au moins 1 pompe OU DC chaque jour.' },
+      { code:'PUSH_WEEK_1000', name:'Super semaine', points:150, desc:'Minimum 1 000 pompes du lundi au dimanche.' },
+      { code:'PUSH_DAY_300', name:'Sprint du jour', points:75, desc:'Une journée à minimum 300 pompes.' }
+    ],
+    duo: [
+      { code:'DUO_7X', name:'Semaine complète', points:100, desc:'7 jours avec au moins 1 pompe OU DC + 1 traction chaque jour.' },
+      { code:'DUO_WEEK', name:'Super semaine', points:150, desc:'Minimum 700 pompes + 100 tractions sur la semaine.' },
+      { code:'DUO_DAY', name:'Force du jour', points:75, desc:'Une journée à minimum 150 pompes + 30 tractions.' }
+    ],
+pushlegs: [
+  { code:'PUSHLEGS_7X', name:'Semaine complète', points:100, desc:'7 jours avec au moins 1 pompe OU DC + 1 jambe chaque jour.' },
+  { code:'PUSHLEGS_WEEK', name:'Super semaine', points:150, desc:'Minimum 700 pompes + 1200 jambes du lundi au dimanche.' },
+  { code:'PUSHLEGS_DAY', name:'Journée explosive', points:75, desc:'Une journée à minimum 150 pompes + 300 jambes.' }
+],
+    trio: [
+      { code:'TRIO_7X', name:'Semaine complète', points:100, desc:'7 jours avec au moins 1 pompe OU DC + 1 traction + 1 jambe chaque jour.' },
+      { code:'TRIO_WEEK', name:'Super semaine', points:150, desc:'Minimum 500 pompes + 80 tractions + 700 jambes sur la semaine.' },
+      { code:'TRIO_DAY', name:'Full body du jour', points:75, desc:'Une journée à minimum 120 pompes + 20 tractions + 200 jambes.' }
+    ]
+  };
+
+  const PREFS_KEY = 'challenge_sport_prefs';
+  let prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{"theme":"auto"}');
+  let currentUser = null;
+  let myProfile = null;
+  let mySessions = [];
+  let allProfiles = [];
+  let allSessions = [];
+  let allBonus = [];
+  let allSnapshots = [];
+  let allFeedEvents = [];
+  let allFeedComments = [];
+  let myOnboardingBonus = null;
+  let leaderboardMode = 'global';
+
+  function fmt(n) { return Math.round(Number(n || 0)).toLocaleString('fr-FR'); }
+  function fmt1(n) { return Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits:1 }); }
+  function localDateKey(d = new Date()) {
+    const date = d instanceof Date ? d : new Date(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  function todayKey() { return localDateKey(new Date()); }
+  function dateKeyFromTs(ts) { return localDateKey(new Date(ts)); }
+  function weekStart(d = new Date()) {
+    const date = d instanceof Date ? new Date(d) : new Date(d);
+    const day = date.getDay() || 7;
+    date.setDate(date.getDate() - day + 1);
+    return localDateKey(date);
+  }
+  function calcPoints(row) {
+    return (Number(row.pushups||0)*WEIGHTS.pushups) + (Number(row.pullups||0)*WEIGHTS.pullups) + (Number(row.legs||0)*WEIGHTS.legs);
+  }
+  function escHtml(s='') { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(window.toastT);
+    window.toastT = setTimeout(()=>el.classList.remove('show'), 2000);
+  }
+
+  function applyTheme(t) {
+    document.documentElement.classList.remove('light','dark');
+    if (t === 'light') document.documentElement.classList.add('light');
+    if (t === 'dark') document.documentElement.classList.add('dark');
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
+    document.getElementById('themeLbl') && (document.getElementById('themeLbl').textContent = t === 'auto' ? 'Automatique' : t === 'light' ? 'Clair' : 'Sombre');
+  }
+
+  async function init() {
+    applyTheme(prefs.theme);
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      document.getElementById('authRoot').style.display = 'flex';
+      document.getElementById('appRoot').style.display = 'none';
+      hideSplash();
+      return;
+    }
+    currentUser = session.user;
+    document.getElementById('authRoot').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+    await loadAppData();
+    await checkAllBonuses();
+    await updateAllProfileComputedFields();
+    await loadAppData();
+    hideSplash();
+    renderAll();
+    switchTab('feed');
+    setTimeout(() => {
+      if (!myOnboardingBonus?.completed) showOnboardingModal();
+    }, 450);
+  }
+
+  function hideSplash() { document.getElementById('splash').classList.add('hidden'); }
+
+  async function loadAppData() {
+    const [{ data: profile }, { data: profiles }, { data: sessions }, { data: bonus }, { data: snapshots }, { data: feedEvents }, { data: feedComments }, { data: onboarding }] = await Promise.all([
+      sb.from('profiles').select('*').eq('id', currentUser.id).single(),
+      sb.from('profiles').select('*').order('total_points', { ascending:false }),
+      sb.from('sessions').select('*').order('created_at', { ascending:false }).limit(1000),
+      sb.from('bonus_awards').select('*').order('awarded_at', { ascending:false }).limit(500),
+      sb.from('ranking_snapshots').select('*').order('snapshot_date', { ascending:false }).limit(1000),
+      sb.from('feed_events').select('*').order('created_at', { ascending:false }).limit(120),
+      sb.from('feed_comments').select('*').order('created_at', { ascending:true }).limit(500),
+      sb.from('onboarding_bonus').select('*').eq('user_id', currentUser.id).maybeSingle()
+    ]);
+    myProfile = profile;
+    allProfiles = profiles || [];
+    allSessions = sessions || [];
+    allBonus = bonus || [];
+    allSnapshots = snapshots || [];
+    allFeedEvents = feedEvents || [];
+    allFeedComments = feedComments || [];
+    myOnboardingBonus = onboarding || null;
+    mySessions = allSessions.filter(s => s.user_id === currentUser.id);
+  }
+
+  async function login() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return authMsg('Connexion impossible : ' + error.message);
+    window.location.reload();
+  }
+
+  async function signup() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const pseudo = document.getElementById('authPseudo').value.trim();
+    const challenge_type = document.getElementById('authChallenge').value;
+    if (!email || !password || !pseudo) return authMsg('Renseigne email, mot de passe et pseudo.');
+    const { data, error } = await sb.auth.signUp({
+      email, password, options: { data: { pseudo, challenge_type } }
+    });
+    if (error) return authMsg('Inscription impossible : ' + error.message);
+    const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
+    if (signInError) return authMsg('Compte créé. Vérifie ton email si demandé, puis connecte-toi.');
+    const { data: { user } } = await sb.auth.getUser();
+    await sb.from('profiles').update({ challenge_type, pseudo }).eq('id', user.id);
+    const challengeLabel = CHALLENGES[challenge_type]?.label || challenge_type;
+    await sb.from('feed_events').insert({ user_id: user.id, event_type: 'new_user', message: `👋 ${pseudo} rejoint le challenge — ${challengeLabel}`, points: 0 });
+    window.location.reload();
+  }
+
+  function authMsg(msg) {
+    document.getElementById('authMessage').innerHTML = `<div class="message">${escHtml(msg)}</div>`;
+  }
+
+  function renderAll() {
+    renderCounter();
+    renderLeaderboard();
+    renderSettings();
+    renderBonusRules();
+    renderFeed();
+    renderOnboardingStatus();
+  }
+
+
+  function completionMovementsForChallenge(challengeType) {
+    if (challengeType === 'pushups') return ['pushups'];
+    if (challengeType === 'duo') return ['pushups','pullups'];
+    if (challengeType === 'pushlegs') return ['pushups','legs'];
+    if (challengeType === 'trio') return ['pushups','pullups','legs'];
+    return ['pushups'];
+  }
+
+  function movementShortLabel(movement) {
+    if (movement === 'pushups') return 'pompes OU DC';
+    if (movement === 'pullups') return 'tractions';
+    if (movement === 'legs') return 'jambes';
+    return movement;
+  }
+
+  function renderWeekCompletionProgress() {
+    const grid = document.getElementById('weekCompleteGrid');
+    if (!grid || !myProfile) return;
+
+    const challengeType = myProfile.challenge_type || 'pushups';
+    const movements = completionMovementsForChallenge(challengeType);
+    const challenge = CHALLENGES[challengeType] || CHALLENGES.pushups;
+    const start = weekStart();
+    const today = todayKey();
+
+    function addDaysToKey(key, days) {
+      const d = new Date(key + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return localDateKey(d);
+    }
+
+    const days = Array.from({ length:7 }, (_,i)=>addDaysToKey(start, i));
+    const byDay = {};
+    mySessions.forEach(s => {
+      const d = dateKeyFromTs(s.created_at);
+      if (d < start || d > days[6]) return;
+      byDay[d] ||= { pushups:0, pullups:0, legs:0 };
+      byDay[d].pushups += Number(s.pushups || 0);
+      byDay[d].pullups += Number(s.pullups || 0);
+      byDay[d].legs += Number(s.legs || 0);
+    });
+
+    function dayIsComplete(d) {
+      const stats = byDay[d] || {};
+      return movements.every(m => Number(stats[m] || 0) > 0);
+    }
+
+    const completedCount = days.filter(d => dayIsComplete(d)).length;
+    const labels = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+    document.getElementById('weekCompleteTitle').textContent = `${challenge.emoji} Semaine complète : ${completedCount}/7`;
+    document.getElementById('weekCompleteText').textContent =
+      `Chaque jour : au moins 1 ${movements.map(movementShortLabel).join(' + 1 ')}.`;
+    document.getElementById('weekCompleteBadge').textContent = completedCount >= 7 ? '✅ +100 pts' : `⭐ ${7-completedCount} jour${7-completedCount>1?'s':''} restant${7-completedCount>1?'s':''}`;
+
+    grid.innerHTML = days.map((d,i) => {
+      const complete = dayIsComplete(d);
+      const future = d > today;
+      const cls = complete ? 'ok' : future ? 'future' : 'miss';
+      const status = complete ? '✓' : future ? '•' : '×';
+      const title = movements.map(m => `${movementShortLabel(m)}: ${fmt((byDay[d]||{})[m] || 0)}`).join(' · ');
+      return `<div class="week-day-chip ${cls}" title="${escHtml(title)}">
+        <div class="week-day-name">${labels[i]}</div>
+        <div class="week-day-status">${status}</div>
+      </div>`;
+    }).join('');
+
+    const missing = days
+      .filter(d => d <= today && !dayIsComplete(d))
+      .map(d => {
+        const stats = byDay[d] || {};
+        const missingMoves = movements.filter(m => Number(stats[m] || 0) <= 0).map(movementShortLabel);
+        return `${new Date(d+'T12:00:00').toLocaleDateString('fr-FR', { weekday:'short' })} : ${missingMoves.join(', ')}`;
+      });
+
+    document.getElementById('weekCompleteSummary').innerHTML =
+      completedCount >= 7
+        ? `<strong>Objectif semaine complète atteint ✅</strong><br>Le bonus sera verrouillé au prochain calcul hebdo.`
+        : `<strong>Objectif en cours</strong><br>${missing.length ? 'À compléter : ' + escHtml(missing.join(' · ')) : 'Continue, les prochains jours arrivent.'}`;
+  }
+
+
+  function renderCounter() {
+    const total = Number(myProfile?.total_points || 0);
+    const pct = Math.min(Math.max(total / GOAL_POINTS, 0), 1);
+    const challenge = CHALLENGES[myProfile?.challenge_type || 'pushups'];
+    document.getElementById('challengeLabelTop').textContent = 'Contrat ' + challenge.short;
+    document.getElementById('challengeBadge').textContent = `${challenge.emoji} ${challenge.label}`;
+    document.getElementById('bonusBadge').textContent = `⭐ ${myProfile?.bonus_count || 0} bonus`;
+    document.getElementById('heroNum').textContent = fmt1(total);
+    document.getElementById('heroSub').textContent = `points sur ${fmt(GOAL_POINTS)}`;
+    document.getElementById('pct').textContent = Math.floor(pct*100) + '%';
+    document.getElementById('remain').textContent = `${fmt1(Math.max(GOAL_POINTS-total,0))} pts restants`;
+    document.getElementById('barFill').style.width = (pct*100) + '%';
+
+    const today = todayKey();
+    const todaySessions = mySessions.filter(s => dateKeyFromTs(s.created_at) === today);
+    const todayPts = todaySessions.reduce((sum,s)=>sum+Number(s.weighted_points||0),0);
+    const todayMoves = todaySessions.reduce((acc,s)=>{
+      acc.pushups += Number(s.pushups || 0);
+      acc.pullups += Number(s.pullups || 0);
+      acc.legs += Number(s.legs || 0);
+      return acc;
+    }, { pushups:0, pullups:0, legs:0 });
+    document.getElementById('statToday').textContent = fmt1(todayPts);
+    const todayDetails = document.getElementById('statTodayDetails');
+    if (todayDetails) todayDetails.textContent = `${fmt(todayMoves.pushups)} pompes · ${fmt(todayMoves.pullups)} tractions · ${fmt(todayMoves.legs)} jambes`;
+    document.getElementById('statSessions').textContent = mySessions.length;
+    document.getElementById('statStreak').textContent = calcStreak() || '—';
+    renderWeekCompletionProgress();
+
+    const grid = document.getElementById('movementGrid');
+    grid.innerHTML = challenge.movements.map(m => movementCardHtml(m)).join('');
+    challenge.movements.forEach(m => {
+      MOVEMENTS[m].presets.forEach(v => {
+        document.getElementById(`${m}-preset-${v}`).addEventListener('click', () => addMovement(m, v));
+      });
+      document.getElementById(`${m}-add`).addEventListener('click', () => {
+        const input = document.getElementById(`${m}-custom`);
+        const val = parseInt(input.value, 10);
+        if (!val || val <= 0) return input.focus();
+        addMovement(m, val);
+        input.value = '';
+      });
+    });
+
+    const list = document.getElementById('historyList');
+    list.innerHTML = mySessions.slice(0,8).map(s => {
+      const parts = [];
+      if (s.pushups) parts.push(`${s.pushups} pompes OU DC`);
+      if (s.pullups) parts.push(`${s.pullups} tractions`);
+      if (s.legs) parts.push(`${s.legs} jambes`);
+      return `<div class="history-item"><div><strong>${parts.join(' · ')}</strong><div class="muted small">${new Date(s.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div><strong>+${fmt1(s.weighted_points)} pts</strong></div>`;
+    }).join('') || '<div class="list-empty">Aucune session</div>';
+  }
+
+  function movementCardHtml(m) {
+    const meta = MOVEMENTS[m];
+    return `<div class="movement-card">
+      <div class="movement-head">
+        <div class="movement-title">${meta.emoji} ${meta.label}</div>
+        <div class="movement-weight">x${WEIGHTS[m]} pt</div>
+      </div>
+      <div class="presets">
+        ${meta.presets.map(v => `<button class="preset-btn" id="${m}-preset-${v}">+${v}</button>`).join('')}
+      </div>
+      <div class="custom-row">
+        <input class="field" id="${m}-custom" type="number" inputmode="numeric" placeholder="Autre nombre" />
+        <button class="add-btn" id="${m}-add">+</button>
+      </div>
+    </div>`;
+  }
+
+  function calcStreak() {
+    const days = [...new Set(mySessions.map(s => dateKeyFromTs(s.created_at)))].sort().reverse();
+    if (!days.length) return 0;
+    let cursor = todayKey();
+    let streak = 0;
+    for (const d of days) {
+      if (d === cursor) {
+        streak++;
+        cursor = new Date(new Date(cursor).getTime()-86400000).toISOString().slice(0,10);
+      } else if (streak === 0 && d === new Date(Date.now()-86400000).toISOString().slice(0,10)) {
+        streak++;
+        cursor = new Date(new Date(d).getTime()-86400000).toISOString().slice(0,10);
+      } else break;
+    }
+    return streak;
+  }
+
+  function getGlobalRankingSnapshotFromProfiles(profiles) {
+    return [...profiles]
+      .map(p => ({ id: p.id, pseudo: p.pseudo, total_points: Number(p.total_points || 0) }))
+      .sort((a,b) => Number(b.total_points || 0) - Number(a.total_points || 0));
+  }
+
+  function getRankFromList(list, userId) {
+    const index = list.findIndex(p => p.id === userId);
+    return index >= 0 ? index + 1 : null;
+  }
+
+  function buildRankProgressMessage(beforeList, afterList, prevPoints, newPoints) {
+    const oldRank = getRankFromList(beforeList, currentUser.id);
+    const newRank = getRankFromList(afterList, currentUser.id);
+    const passed = beforeList
+      .filter(p => p.id !== currentUser.id)
+      .filter(p => Number(p.total_points || 0) > prevPoints && Number(p.total_points || 0) <= newPoints)
+      .sort((a,b) => Number(b.total_points || 0) - Number(a.total_points || 0));
+
+    if (newRank === 1 && oldRank !== 1) return '🏆 Tu prends la tête du classement !';
+    if (oldRank && newRank && newRank < oldRank) {
+      if (passed.length) return `🎉 Tu dépasses ${passed[0].pseudo || 'un adversaire'} !`;
+      return `🚀 Tu gagnes ${oldRank - newRank} place${oldRank - newRank > 1 ? 's' : ''} !`;
+    }
+    return `+${fmt1(newPoints - prevPoints)} pts`;
+  }
+
+  async function addMovement(movement, reps) {
+    const beforeList = getGlobalRankingSnapshotFromProfiles(allProfiles);
+    const row = { user_id: currentUser.id, pushups:0, pullups:0, legs:0 };
+    row[movement] = reps;
+    row.weighted_points = calcPoints(row);
+
+    const prevPoints = Number(myProfile.total_points || 0);
+
+    const { error: insertError } = await sb.from('sessions').insert(row);
+    if (insertError) {
+      console.error('Erreur ajout séance', insertError);
+      return showToast('Erreur, réessaie');
+    }
+
+    await loadAppData();
+    await checkAllBonuses();
+    await updateAllProfileComputedFields();
+    await loadAppData();
+    const finalTotal = Number(myProfile?.total_points || 0);
+
+    const afterList = getGlobalRankingSnapshotFromProfiles(allProfiles);
+    const progressMessage = buildRankProgressMessage(beforeList, afterList, prevPoints, finalTotal);
+    if (progressMessage.includes('dépasses') || progressMessage.includes('place') || progressMessage.includes('tête')) {
+      await sb.from('feed_events').insert({
+        user_id: currentUser.id,
+        event_type: 'rank_change',
+        message: `${myProfile.pseudo || 'Un joueur'} : ${progressMessage}`,
+        points: Math.round(finalTotal - prevPoints)
+      });
+      await loadAppData();
+    }
+    renderAll();
+    showToast(progressMessage);
+  }
+
+  function getWeekSessions() {
+    const start = weekStart();
+    return allSessions.filter(s => dateKeyFromTs(s.created_at) >= start);
+  }
+
+  function pointsForUser(userId, mode = 'global') {
+    if (mode === 'global') {
+      return Number((allProfiles.find(p => p.id === userId) || {}).total_points || 0);
+    }
+    return getWeekSessions()
+      .filter(s => s.user_id === userId)
+      .reduce((sum, s) => sum + Number(s.weighted_points || 0), 0);
+  }
+
+  function rankChangeForUser(userId, currentRank) {
+    const today = todayKey();
+    const previous = allSnapshots
+      .filter(s => s.user_id === userId && s.snapshot_date < today)
+      .sort((a,b) => b.snapshot_date.localeCompare(a.snapshot_date))[0];
+
+    if (!previous) return { label:'→', cls:'stable' };
+
+    const diff = Number(previous.rank) - Number(currentRank);
+    if (diff > 0) return { label:`↑${diff}`, cls:'up' };
+    if (diff < 0) return { label:`↓${Math.abs(diff)}`, cls:'down' };
+    return { label:'→', cls:'stable' };
+  }
+
+  async function saveTodayRankingSnapshot(sorted) {
+    const today = todayKey();
+    const rows = sorted.map((p, i) => ({
+      user_id: p.id,
+      rank: i + 1,
+      total_points: Number(p.rankPoints || 0),
+      snapshot_date: today
+    }));
+
+    if (!rows.length) return;
+
+    await sb.from('ranking_snapshots').upsert(rows, {
+      onConflict: 'user_id,snapshot_date'
+    });
+  }
+
+  function setLeaderboardMode(mode) {
+    leaderboardMode = mode;
+    document.getElementById('rankModeGlobal').classList.toggle('active', mode === 'global');
+    document.getElementById('rankModeWeek').classList.toggle('active', mode === 'week');
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    const sorted = [...allProfiles]
+      .map(p => ({ ...p, rankPoints: pointsForUser(p.id, leaderboardMode) }))
+      .sort((a,b)=>Number(b.rankPoints||0)-Number(a.rankPoints||0));
+
+    document.getElementById('rankingTitle').textContent =
+      leaderboardMode === 'global' ? 'Participants — classement général' : 'Participants — classement de la semaine';
+
+    const list = document.getElementById('lbList');
+    list.innerHTML = sorted.map((p,i) => {
+      const challenge = CHALLENGES[p.challenge_type || 'pushups'];
+      const pct = Math.min(Math.max(Number(p.rankPoints||0)/GOAL_POINTS*100,0),100);
+      const isMe = p.id === currentUser?.id;
+      const change = leaderboardMode === 'global'
+        ? rankChangeForUser(p.id, i + 1)
+        : { label:'sem.', cls:'stable' };
+
+      return `<div class="lb-item${isMe?' me':''}" onclick="showPlayer('${p.id}')">
+        <div class="lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+        <div class="avatar">${p.avatar_url ? `<img src="${escHtml(p.avatar_url)}">` : escHtml((p.pseudo||'?')[0].toUpperCase())}</div>
+        <div class="lb-info">
+          <div class="lb-name-row"><div class="lb-name">${escHtml(p.pseudo||'—')}</div>${isMe?'<span class="mini-meta">moi</span>':''}</div>
+          <div class="mini-meta"><span>${challenge.short}</span><span>⭐ x${p.bonus_count||0}</span><span class="rank-change ${change.cls}">${change.label}</span></div>
+          <div class="mini-bar"><div class="mini-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="lb-points">${fmt1(p.rankPoints)}<div class="muted small">pts</div></div>
+      </div>`;
+    }).join('') || '<div class="list-empty">Aucun participant</div>';
+
+    renderWeeklyChampions();
+    if (leaderboardMode === 'global') saveTodayRankingSnapshot(sorted);
+  }
+
+  function renderWeeklyChampions() {
+    const sessions = getWeekSessions();
+    const profilesById = Object.fromEntries(allProfiles.map(p => [p.id, p]));
+
+    function bestFor(movement) {
+      const totals = {};
+      sessions.forEach(s => {
+        totals[s.user_id] = (totals[s.user_id] || 0) + Number(s[movement] || 0);
+      });
+      const winnerId = Object.keys(totals).sort((a,b) => totals[b] - totals[a])[0];
+      if (!winnerId || !totals[winnerId]) return null;
+      return { profile: profilesById[winnerId], value: totals[winnerId] };
+    }
+
+    const champs = [
+      { key:'pushups', icon:'💪', title:'Roi des pompes OU DC', unit:'pompes OU DC' },
+      { key:'pullups', icon:'🧗', title:'Roi des tractions', unit:'tractions' },
+      { key:'legs', icon:'🦵', title:'Roi des jambes', unit:'reps' }
+    ];
+
+    document.getElementById('weeklyChampions').innerHTML = champs.map(c => {
+      const best = bestFor(c.key);
+      if (!best) {
+        return `<div class="champ-card"><div><div class="champ-title">${c.icon} ${c.title}</div><div class="muted small">Pas encore de données cette semaine</div></div><div class="champ-value">—</div></div>`;
+      }
+      return `<div class="champ-card"><div><div class="champ-title">${c.icon} ${c.title}</div><div class="champ-name">${escHtml(best.profile?.pseudo || '—')}</div></div><div class="champ-value">${fmt(best.value)} ${c.unit}</div></div>`;
+    }).join('');
+  }
+
+  function renderBonusRules() {
+    const container = document.getElementById('bonusRulesList');
+    const challenge = myProfile?.challenge_type || 'pushups';
+    container.innerHTML = (BONUS_RULES[challenge] || []).map(b => `<div class="bonus-item"><strong>⭐ ${b.name} · +${b.points} pts</strong><span class="muted">${b.desc}</span></div>`).join('') + `<div class="bonus-item"><strong>🚀 Progression hebdo · +100 à +750 pts</strong><span class="muted">Si ta semaine complète précédente dépasse tes points de la semaine d’avant : +10% = 100 pts, +20% = 200 pts, etc. Bonus plafonné à 750 pts.</span></div>`;
+  }
+
+  async function checkAllBonuses() {
+    const currentWeekStart = weekStart();
+
+    function addDaysToKey(key, days) {
+      const d = new Date(key + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return localDateKey(d);
+    }
+
+    // Bonus hebdo : on ne valide jamais la semaine en cours.
+    // La semaine complète précédente devient éligible le lundi à 00:01.
+    const previousWeekStart = addDaysToKey(currentWeekStart, -7);
+    const previousWeekEnd = addDaysToKey(currentWeekStart, -1);
+    const baselineWeekStart = addDaysToKey(currentWeekStart, -14);
+    const baselineWeekEnd = addDaysToKey(currentWeekStart, -8);
+    const now = new Date();
+    const isMonday = (now.getDay() || 7) === 1;
+    const weeklyUnlocked = !isMonday || now.getHours() > 0 || now.getMinutes() >= 1;
+
+    function baseBonusCode(code) {
+      return String(code || '').replace(/_\d{4}-\d{2}-\d{2}$/, '');
+    }
+    function bonusAwardDay(b) {
+      const suffix = String(b?.bonus_code || '').match(/_(\d{4}-\d{2}-\d{2})$/);
+      if (suffix) return suffix[1];
+      if (b?.week_start) return String(b.week_start).slice(0, 10);
+      return dateKeyFromTs(b?.awarded_at);
+    }
+    function alreadyAwardedFor(userId, code, periodKey) {
+      return allBonus.some(b =>
+        b.user_id === userId &&
+        baseBonusCode(b.bonus_code) === code &&
+        bonusAwardDay(b) === periodKey
+      );
+    }
+    function dayPassesDailyRule(code, d) {
+      const p = Number(d?.pushups || 0);
+      const t = Number(d?.pullups || 0);
+      const l = Number(d?.legs || 0);
+      if (code === 'PUSH_DAY_300') return p >= 300;
+      if (code === 'DUO_DAY') return p >= 150 && t >= 30;
+      if (code === 'PUSHLEGS_DAY') return p >= 150 && l >= 300;
+      if (code === 'TRIO_DAY') return p >= 120 && t >= 20 && l >= 200;
+      return false;
+    }
+    function dailyCodeForChallenge(ch) {
+      if (ch === 'pushups') return 'PUSH_DAY_300';
+      if (ch === 'duo') return 'DUO_DAY';
+      if (ch === 'pushlegs') return 'PUSHLEGS_DAY';
+      if (ch === 'trio') return 'TRIO_DAY';
+      return null;
+    }
+    function weekSessionPoints(userSessions, startKey, endKey) {
+      return userSessions
+        .filter(s => {
+          const d = dateKeyFromTs(s.created_at);
+          return d >= startKey && d <= endKey;
+        })
+        .reduce((sum, s) => sum + Number(s.weighted_points || calcPoints(s) || 0), 0);
+    }
+
+    let totalAwards = 0;
+
+    for (const profile of allProfiles) {
+      const userId = profile.id;
+      const challenge = profile.challenge_type || 'pushups';
+      const rules = BONUS_RULES[challenge] || [];
+      const userSessions = allSessions.filter(s => s.user_id === userId);
+
+      const byDay = {};
+      userSessions.forEach(s => {
+        const d = dateKeyFromTs(s.created_at);
+        byDay[d] ||= { pushups:0, pullups:0, legs:0 };
+        byDay[d].pushups += Number(s.pushups || 0);
+        byDay[d].pullups += Number(s.pullups || 0);
+        byDay[d].legs += Number(s.legs || 0);
+      });
+
+      const completedWeekByDay = Object.fromEntries(
+        Object.entries(byDay).filter(([day]) => day >= previousWeekStart && day <= previousWeekEnd)
+      );
+      const completedWeekTotals = Object.values(completedWeekByDay).reduce((a,d)=>({
+        pushups:a.pushups+d.pushups,
+        pullups:a.pullups+d.pullups,
+        legs:a.legs+d.legs
+      }), {pushups:0,pullups:0,legs:0});
+
+      const awards = [];
+      function addWeeklyIf(code, condition) {
+        const rule = rules.find(r => r.code === code);
+        if (rule && weeklyUnlocked && condition && !alreadyAwardedFor(userId, code, currentWeekStart)) {
+          awards.push({ ...rule, periodKey:currentWeekStart, insertCode:code });
+        }
+      }
+      function addDailyIf(code, day, stats) {
+        const rule = rules.find(r => r.code === code);
+        const condition = dayPassesDailyRule(code, stats);
+        if (rule && condition && !alreadyAwardedFor(userId, code, day)) {
+          awards.push({ ...rule, periodKey:day, insertCode:`${code}_${day}` });
+        }
+      }
+
+      if (challenge === 'pushups') {
+        addWeeklyIf('PUSH_7X100', Object.keys(completedWeekByDay).length >= 7 && Object.values(completedWeekByDay).every(d => d.pushups > 0));
+        addWeeklyIf('PUSH_WEEK_1000', completedWeekTotals.pushups >= 1000);
+      }
+      if (challenge === 'duo') {
+        addWeeklyIf('DUO_7X', Object.keys(completedWeekByDay).length >= 7 && Object.values(completedWeekByDay).every(d => d.pushups > 0 && d.pullups > 0));
+        addWeeklyIf('DUO_WEEK', completedWeekTotals.pushups >= 700 && completedWeekTotals.pullups >= 100);
+      }
+      if (challenge === 'pushlegs') {
+        addWeeklyIf('PUSHLEGS_7X', Object.keys(completedWeekByDay).length >= 7 && Object.values(completedWeekByDay).every(d => d.pushups > 0 && d.legs > 0));
+        addWeeklyIf('PUSHLEGS_WEEK', completedWeekTotals.pushups >= 700 && completedWeekTotals.legs >= 1200);
+      }
+      if (challenge === 'trio') {
+        addWeeklyIf('TRIO_7X', Object.keys(completedWeekByDay).length >= 7 && Object.values(completedWeekByDay).every(d => d.pushups > 0 && d.pullups > 0 && d.legs > 0));
+        addWeeklyIf('TRIO_WEEK', completedWeekTotals.pushups >= 500 && completedWeekTotals.pullups >= 80 && completedWeekTotals.legs >= 700);
+      }
+
+      const dailyCode = dailyCodeForChallenge(challenge);
+      if (dailyCode) {
+        Object.entries(byDay).forEach(([day, stats]) => addDailyIf(dailyCode, day, stats));
+      }
+
+      // Nouveau bonus hebdomadaire de progression :
+      // si la semaine complète précédente dépasse la semaine d'avant de 10%, +100 pts,
+      // 20% = +200 pts, etc., plafonné à 750 pts.
+      const lastWeekPoints = weekSessionPoints(userSessions, previousWeekStart, previousWeekEnd);
+      const baselinePoints = weekSessionPoints(userSessions, baselineWeekStart, baselineWeekEnd);
+      if (weeklyUnlocked && baselinePoints > 0 && lastWeekPoints > baselinePoints && !alreadyAwardedFor(userId, 'PROGRESS_WEEK', currentWeekStart)) {
+        const improvementPct = ((lastWeekPoints - baselinePoints) / baselinePoints) * 100;
+        const level = Math.floor(improvementPct / 10);
+        const progressPoints = Math.min(level * 100, 750);
+        if (progressPoints >= 100) {
+          awards.push({
+            code:'PROGRESS_WEEK',
+            insertCode:'PROGRESS_WEEK',
+            name:`Progression hebdo +${Math.floor(improvementPct)}%`,
+            points:progressPoints,
+            periodKey:currentWeekStart
+          });
+        }
+      }
+
+      for (const rule of awards) {
+        const { data: inserted, error } = await sb.from('bonus_awards').insert({
+          user_id: userId,
+          bonus_code: rule.insertCode || rule.code,
+          challenge_type: challenge,
+          points: rule.points,
+          week_start: rule.periodKey
+        }).select('*').single();
+
+        if (error) {
+          console.error('Erreur attribution bonus', error, rule, profile);
+          continue;
+        }
+
+        if (inserted) allBonus.unshift(inserted);
+        totalAwards++;
+
+        await sb.from('feed_events').insert({
+          user_id: userId,
+          event_type: 'bonus_awarded',
+          message: `⭐ ${profile.pseudo || 'Un joueur'} débloque ${rule.name} (+${rule.points} pts)`,
+          points: rule.points
+        });
+      }
+    }
+
+    if (totalAwards) await loadAppData();
+    return totalAwards;
+  }
+
+  async function checkBonuses() {
+    return checkAllBonuses();
+  }
+
+
+function renderSettings() {
+    document.getElementById('profilePseudo').textContent = myProfile?.pseudo || '—';
+    document.getElementById('profileEmail').textContent = currentUser?.email || '—';
+    const preview = document.getElementById('avatarPreview');
+    if (preview) {
+      preview.innerHTML = myProfile?.avatar_url
+        ? `<img src="${escHtml(myProfile.avatar_url)}" alt="Photo profil">`
+        : escHtml((myProfile?.pseudo || '?')[0].toUpperCase());
+    }
+    const challenge = CHALLENGES[myProfile?.challenge_type || 'pushups'];
+    document.getElementById('lockedChallengeName').textContent = `${challenge.emoji} ${challenge.label}`;
+    applyTheme(prefs.theme);
+  }
+
+  async function saveProfile() {
+    showToast('Profil enregistré');
+  }
+
+  async function uploadAvatar(file) {
+    if (!file || !currentUser) return;
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const filePath = `${currentUser.id}/avatar-${Date.now()}.${ext}`;
+    showToast('Envoi de la photo...');
+
+    const { error: uploadError } = await sb.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true, cacheControl: '3600' });
+
+    if (uploadError) {
+      showToast('Erreur photo : bucket avatars ?');
+      return;
+    }
+
+    const { data } = sb.storage.from('avatars').getPublicUrl(filePath);
+    const publicUrl = data.publicUrl;
+
+    const { error } = await sb.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
+    if (error) return showToast('Erreur profil');
+
+    showToast('Photo mise à jour ✅');
+    await loadAppData();
+    renderAll();
+  }
+
+  async function deleteLastSession() {
+    if (!mySessions.length) return showToast('Aucune saisie');
+    if (!confirm('Supprimer ta dernière saisie ?')) return;
+    const last = mySessions[0];
+
+    const { data: deletedRows, error: deleteError } = await sb
+      .from('sessions')
+      .delete()
+      .eq('id', last.id)
+      .eq('user_id', currentUser.id)
+      .select('id');
+
+    if (deleteError || !deletedRows || deletedRows.length === 0) {
+      console.error('Erreur suppression séance', deleteError, deletedRows);
+      return showToast('Suppression impossible');
+    }
+
+    await updateMyProfileComputedFields();
+    await loadAppData();
+    renderAll();
+    showToast('Dernière saisie supprimée');
+  }
+
+  function buildPlayerDailyChart(playerId) {
+    const sessions = allSessions.filter(s => s.user_id === playerId);
+    const bonuses = allBonus.filter(b => b.user_id === playerId);
+    const daysMap = {};
+
+    function cleanBonusCode(code) {
+      return String(code || '').replace(/_\d{4}-\d{2}-\d{2}$/, '');
+    }
+
+    sessions.forEach(s => {
+      const d = dateKeyFromTs(s.created_at);
+      daysMap[d] ||= { sessionPts:0, bonusPts:0, pushups:0, pullups:0, legs:0, bonusCodes:[] };
+      daysMap[d].sessionPts += Number(s.weighted_points || 0);
+      daysMap[d].pushups += Number(s.pushups || 0);
+      daysMap[d].pullups += Number(s.pullups || 0);
+      daysMap[d].legs += Number(s.legs || 0);
+    });
+    bonuses.forEach(b => {
+      const d = b.week_start || dateKeyFromTs(b.awarded_at);
+      daysMap[d] ||= { sessionPts:0, bonusPts:0, pushups:0, pullups:0, legs:0, bonusCodes:[] };
+      daysMap[d].bonusPts += Number(b.points || 0);
+      daysMap[d].bonusCodes.push(cleanBonusCode(b.bonus_code));
+    });
+
+    let days = Object.keys(daysMap).sort();
+    if (!days.length) return '<div class="list-empty">Pas encore de données</div>';
+
+    const firstDay = days[0];
+    let cumulativeBefore = 0;
+    sessions.forEach(s => { if (dateKeyFromTs(s.created_at) < firstDay) cumulativeBefore += Number(s.weighted_points || 0); });
+    bonuses.forEach(b => { const d = b.week_start || dateKeyFromTs(b.awarded_at); if (d < firstDay) cumulativeBefore += Number(b.points || 0); });
+    const onboardingPts = playerId === currentUser?.id && myOnboardingBonus?.completed ? Number(myOnboardingBonus.score || 0) : 0;
+    cumulativeBefore += onboardingPts;
+
+    const rows = [];
+    let cumulative = cumulativeBefore;
+    days.forEach(d => {
+      const item = daysMap[d];
+      const sessionPts = Number(item.sessionPts || 0);
+      const bonusPts = Number(item.bonusPts || 0);
+      const total = sessionPts + bonusPts;
+      cumulative += total;
+      const pct = Math.max(0, Math.min(100, (cumulative / GOAL_POINTS) * 100));
+      rows.push({ date:d, total, cumulative, pct, sessionPts, bonusPts, pushups:item.pushups||0, pullups:item.pullups||0, legs:item.legs||0, bonusCodes:item.bonusCodes || [] });
+    });
+
+    const maxPart = Math.max(...rows.flatMap(r => [Math.abs(r.sessionPts), Math.abs(r.bonusPts)]), 1);
+    const chartWidth = Math.max(520, rows.length * 58);
+    const pointObjs = rows.map((r, i) => {
+      const x = rows.length === 1 ? 50 : 6 + (i / (rows.length - 1)) * 88;
+      const y = Math.max(6, Math.min(94, 100 - r.pct));
+      return { x, y, pct:r.pct };
+    });
+    const points = pointObjs.map(p => `${p.x},${p.y}`).join(' ');
+
+    const detailHtml = rows.slice().reverse().map(r => {
+      const label = new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday:'short', day:'2-digit', month:'2-digit' });
+      const bonusLabel = r.bonusCodes.length ? r.bonusCodes.join(', ') : '—';
+      return `<div class="daily-detail-card">
+        <div class="daily-detail-head"><div class="daily-detail-date">${label}</div><div class="daily-detail-total">${fmt1(r.total)} pts</div></div>
+        <div class="daily-detail-grid">
+          <div>🔵 Activité : <strong>${fmt1(r.sessionPts)}</strong> pts</div>
+          <div>🟡 Bonus : <strong>${fmt1(r.bonusPts)}</strong> pts</div>
+          <div>💪 Pompes OU DC : <strong>${fmt(r.pushups)}</strong></div>
+          <div>🧗 Tractions : <strong>${fmt(r.pullups)}</strong></div>
+          <div>🦵 Jambes : <strong>${fmt(r.legs)}</strong></div>
+          <div>📈 Challenge : <strong>${r.pct.toFixed(1)}%</strong></div>
+          <div style="grid-column:1/-1">⭐ Codes bonus : <strong>${escHtml(bonusLabel)}</strong></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="daily-chart-scroll">
+        <div class="daily-chart-v511" style="min-width:${chartWidth}px">
+          <svg class="daily-curve-v511" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <polyline points="${points}" fill="none" stroke="#16a34a" stroke-width="3.2" vector-effect="non-scaling-stroke" opacity=".95" />
+            ${pointObjs.map(p => `<circle class="daily-curve-dot" cx="${p.x}" cy="${p.y}" r="1.9" />`).join('')}
+          </svg>
+          <div class="daily-chart-bars-v511">
+            ${rows.map(r => {
+              const sessionH = r.sessionPts ? Math.max(4, Math.abs(r.sessionPts) / maxPart * 100) : 0;
+              const bonusH = r.bonusPts ? Math.max(4, Math.abs(r.bonusPts) / maxPart * 100) : 0;
+              return `<div class="daily-day-group">
+                <span class="daily-pct-label">${r.pct.toFixed(1)}%</span>
+                ${r.sessionPts ? `<div class="daily-single-bar session" style="height:${sessionH}%"><span class="daily-single-value">${fmt1(r.sessionPts)}</span></div>` : ''}
+                ${r.bonusPts ? `<div class="daily-single-bar bonus" style="height:${bonusH}%"><span class="daily-single-value">${fmt1(r.bonusPts)}</span></div>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="daily-x-v511">
+            ${rows.map(r => {
+              const label = new Date(r.date + 'T12:00:00').toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+              return `<div class="daily-x-item-v511">${label}</div>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend"><span><span class="legend-dot" style="background:var(--accent)"></span>Activité</span><span><span class="legend-dot" style="background:var(--orange)"></span>Bonus</span><span><span class="legend-dot" style="background:#16a34a"></span>Courbe = % du challenge</span></div>
+      <div class="section-title" style="margin-top:18px">Détail journalier</div>
+      <div class="daily-detail-list">${detailHtml}</div>`;
+  }
+
+  
+  function showPhotoZoom(url) {
+    if (!url) return;
+    const modal = document.getElementById('photoZoomModal');
+    const img = document.getElementById('photoZoomImg');
+    if (!modal || !img) return;
+    img.src = url;
+    modal.classList.add('show');
+  }
+
+  function hidePhotoZoom() {
+    const modal = document.getElementById('photoZoomModal');
+    const img = document.getElementById('photoZoomImg');
+    if (modal) modal.classList.remove('show');
+    if (img) img.src = '';
+  }
+
+function showPlayer(id) {
+    const p = allProfiles.find(x=>x.id===id);
+    if (!p) return;
+    const sessions = allSessions.filter(s=>s.user_id===id).slice().reverse();
+    const challenge = CHALLENGES[p.challenge_type || 'pushups'];
+    document.getElementById('modalTitle').textContent = p.pseudo || 'Joueur';
+    const max = Math.max(...sessions.map(s=>Number(s.weighted_points||0)), 1);
+    const totals = {
+      pushups: sessions.reduce((a,s)=>a+Number(s.pushups||0),0),
+      pullups: sessions.reduce((a,s)=>a+Number(s.pullups||0),0),
+      legs: sessions.reduce((a,s)=>a+Number(s.legs||0),0)
+    };
+    document.getElementById('modalContent').innerHTML = `
+      <div class="row-between">
+        <div class="avatar" onclick="showPhotoZoom('${escHtml(p.avatar_url || '')}')" style="width:58px;height:58px;font-size:24px;cursor:${p.avatar_url ? 'zoom-in' : 'default'}">${p.avatar_url ? `<img src="${escHtml(p.avatar_url)}">` : escHtml((p.pseudo||'?')[0].toUpperCase())}</div>
+        <div style="text-align:right"><div class="challenge-badge">${challenge.emoji} ${challenge.short}</div><div style="margin-top:8px;font-weight:900">${fmt1(p.total_points)} pts</div></div>
+      </div>
+      <div class="stat-grid" style="margin-top:16px">
+        <div class="stat"><div class="v">${fmt(totals.pushups)}</div><div class="l">pompes OU DC</div></div>
+        <div class="stat"><div class="v">${fmt(totals.pullups)}</div><div class="l">tractions</div></div>
+        <div class="stat"><div class="v">${fmt(totals.legs)}</div><div class="l">jambes</div></div>
+      </div>
+      <div class="section-title" style="margin-top:18px">Évolution quotidienne</div>
+      ${buildPlayerDailyChart(p.id)}
+      <div class="section-title" style="margin-top:18px">Bonus obtenus</div>
+      <div class="bonus-list">${allBonus.filter(b=>b.user_id===id).slice(0,5).map(b=>`<div class="bonus-item"><strong>⭐ ${escHtml(String(b.bonus_code || '').replace(/_\d{4}-\d{2}-\d{2}$/, ''))} · +${b.points}</strong><span class="muted">${new Date(b.awarded_at).toLocaleDateString('fr-FR')}</span></div>`).join('') || '<div class="list-empty">Aucun bonus</div>'}</div>
+    `;
+    document.getElementById('playerModal').classList.add('show');
+  }
+  function hidePlayerModal() { document.getElementById('playerModal').classList.remove('show'); }
+  function closePlayerModal(e) { if (e.target.id === 'playerModal') hidePlayerModal(); }
+
+
+  const ONBOARDING_QUESTIONS = [
+    { key:'child_under_3', label:'👶 Tu as un enfant de moins de 3 ans', points:150 },
+    { key:'night_child', label:'🌙 Tu te lèves la nuit pour t’occuper d’un enfant', points:100 },
+    { key:'remote_3_days', label:'🏠 Tu as plus de 3 jours de télétravail cette semaine ou la semaine passée', points:-100 },
+    { key:'previous_10k', label:'🏆 Tu as déjà fait le challenge précédent des 10K', points:-250 },
+    { key:'own_boss', label:'💼 Tu es ton propre patron et tu gères ton planning', points:-100 },
+    { key:'commute_1h_3x', label:'🚗 Tu as plus d’1h de trajet quotidien au moins 3 fois/semaine', points:100 },
+    { key:'no_vacation_3m', label:'🏖 Tu n’as pas eu de vacances d’au moins une semaine depuis plus de 3 mois', points:100 },
+    { key:'no_pullup_bar', label:'🧗 Tu n’as pas de barre de traction', points:200 },
+    { key:'no_bench', label:'🏋️ Tu n’as pas de banc de développé couché', points:100 },
+    { key:'regular_activity', label:'🏃 Tu as une activité physique régulière hors challenge (mini 2x/semaine)', points:100 },
+    { key:'injury_6m', label:'🤕 Tu as eu une vraie blessure dans les 6 derniers mois', points:200 }
+  ];
+
+  function capOnboardingScore(score) {
+    return Math.max(-500, Math.min(500, Number(score || 0)));
+  }
+
+  function getOnboardingScoreFromForm() {
+    let raw = 0;
+    const answers = {};
+    let missing = [];
+
+    ONBOARDING_QUESTIONS.forEach(q => {
+      const selected = document.querySelector(`input[name="onboard_${q.key}"]:checked`);
+      if (!selected) {
+        missing.push(q.key);
+        return;
+      }
+
+      const isYes = selected.value === 'yes';
+      answers[q.key] = isYes;
+      if (isYes) raw += q.points;
+    });
+
+    return { raw, score: capOnboardingScore(raw), answers, missing };
+  }
+
+  function updateOnboardingPreview() {
+    const preview = document.getElementById('onboardingScorePreview');
+    if (preview) preview.textContent = 'Le résultat sera affiché après validation définitive.';
+  }
+
+  function showOnboardingModal() {
+    if (myOnboardingBonus?.completed) {
+      showToast('Questionnaire déjà validé');
+      return;
+    }
+    const list = document.getElementById('onboardingQuestions');
+    list.innerHTML = ONBOARDING_QUESTIONS.map(q => `
+      <div class="question-item" style="display:block">
+        <div style="font-weight:800;margin-bottom:10px">${escHtml(q.label)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <label class="ghost-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px">
+            <input type="radio" name="onboard_${q.key}" value="yes" onchange="updateOnboardingPreview()"> Oui
+          </label>
+          <label class="ghost-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px">
+            <input type="radio" name="onboard_${q.key}" value="no" onchange="updateOnboardingPreview()"> Non
+          </label>
+        </div>
+      </div>
+    `).join('');
+    updateOnboardingPreview();
+    document.getElementById('onboardingModal').classList.add('show');
+  }
+  function hideOnboardingModal() { document.getElementById('onboardingModal').classList.remove('show'); }
+  function closeOnboardingModal(e) { if (e.target.id === 'onboardingModal') hideOnboardingModal(); }
+
+  async function recomputeUserTotalPoints(userId) {
+    const [{ data: sessions }, { data: bonuses }, { data: onboarding }] = await Promise.all([
+      sb.from('sessions').select('weighted_points').eq('user_id', userId),
+      sb.from('bonus_awards').select('points').eq('user_id', userId),
+      sb.from('onboarding_bonus').select('score, completed').eq('user_id', userId).maybeSingle()
+    ]);
+
+    const sessionPoints = (sessions || []).reduce((sum, item) => sum + Number(item.weighted_points || 0), 0);
+    const bonusPoints = (bonuses || []).reduce((sum, item) => sum + Number(item.points || 0), 0);
+    const onboardingPoints = onboarding?.completed ? Number(onboarding.score || 0) : 0;
+    return sessionPoints + bonusPoints + onboardingPoints;
+  }
+
+  async function recomputeMyTotalPoints() {
+    return recomputeUserTotalPoints(currentUser.id);
+  }
+
+
+  async function recomputeProfileSummary(userId) {
+    const [{ data: sessions }, { data: bonuses }, { data: onboarding }] = await Promise.all([
+      sb.from('sessions').select('weighted_points').eq('user_id', userId),
+      sb.from('bonus_awards').select('points').eq('user_id', userId),
+      sb.from('onboarding_bonus').select('score, completed').eq('user_id', userId).maybeSingle()
+    ]);
+    const sessionPoints = (sessions || []).reduce((sum, item) => sum + Number(item.weighted_points || 0), 0);
+    const bonusPoints = (bonuses || []).reduce((sum, item) => sum + Number(item.points || 0), 0);
+    const onboardingPoints = onboarding?.completed ? Number(onboarding.score || 0) : 0;
+    return {
+      total_points: sessionPoints + bonusPoints + onboardingPoints,
+      bonus_count: (bonuses || []).length,
+      bonus_points: bonusPoints
+    };
+  }
+
+  async function recomputeMyProfileSummary() {
+    return recomputeProfileSummary(currentUser.id);
+  }
+
+  async function updateProfileComputedFields(userId) {
+    const summary = await recomputeProfileSummary(userId);
+    await sb.from('profiles').update(summary).eq('id', userId);
+    return summary;
+  }
+
+  async function updateMyProfileComputedFields() {
+    return updateProfileComputedFields(currentUser.id);
+  }
+
+  async function updateAllProfileComputedFields() {
+    const ids = [...new Set(allProfiles.map(p => p.id).filter(Boolean))];
+    for (const id of ids) {
+      await updateProfileComputedFields(id);
+    }
+  }
+
+  async function submitOnboarding() {
+    if (myOnboardingBonus?.completed) return showToast('Questionnaire déjà validé');
+
+    const submitBtn = document.getElementById('submitOnboardingBtn');
+    if (submitBtn?.disabled) return;
+
+    const { score, answers, missing } = getOnboardingScoreFromForm();
+    if (missing.length) {
+      showToast('Réponds à toutes les questions');
+      return;
+    }
+
+    if (!confirm('Valider définitivement ce questionnaire ? Il ne pourra plus être modifié.')) return;
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Validation...';
+    }
+
+    const { data: existing, error: existingError } = await sb
+      .from('onboarding_bonus')
+      .select('user_id, completed')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('Erreur vérification questionnaire', existingError);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Valider définitivement';
+      }
+      return showToast('Erreur questionnaire');
+    }
+
+    if (existing?.completed) {
+      myOnboardingBonus = existing;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Valider définitivement';
+      }
+      hideOnboardingModal();
+      return showToast('Questionnaire déjà validé');
+    }
+
+    const { error: insertError } = await sb.from('onboarding_bonus').insert({
+      user_id: currentUser.id,
+      score,
+      answers,
+      completed: true
+    });
+
+    if (insertError) {
+      console.error('Erreur questionnaire', insertError);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Valider définitivement';
+      }
+      return showToast('Erreur questionnaire');
+    }
+
+    await updateMyProfileComputedFields();
+
+    await sb.from('feed_events').insert({
+      user_id: currentUser.id,
+      event_type: 'startup_bonus',
+      message: `⚖️ ${myProfile.pseudo || 'Un joueur'} obtient ${score > 0 ? '+' : ''}${score} pts d’équilibrage`,
+      points: score
+    });
+
+    hideOnboardingModal();
+    showToast(`Équilibrage validé : ${score > 0 ? '+' : ''}${score} pts`);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Valider définitivement';
+    }
+    await loadAppData();
+    renderAll();
+  }
+
+  function feedIcon(type) {
+    return ({ new_user:'👋', bonus_awarded:'⭐', rank_change:'🔥', startup_bonus:'⚖️', weekly_champion:'🥇', user_post:'💬' }[type] || '📰');
+  }
+
+  function profileNameById(userId) {
+    return (allProfiles.find(p => p.id === userId)?.pseudo) || 'Joueur';
+  }
+
+  function commentsForFeed(feedId) {
+    return allFeedComments.filter(c => Number(c.feed_event_id) === Number(feedId));
+  }
+
+  function feedItemHtml(e) {
+    const date = new Date(e.created_at).toLocaleString('fr-FR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+    const pts = Number(e.points || 0);
+    const comments = commentsForFeed(e.id);
+    const commentsHtml = comments.slice(-4).map(c => `
+      <div class="feed-comment"><strong>${escHtml(profileNameById(c.user_id))}</strong> <span>${escHtml(c.message)}</span></div>
+    `).join('');
+    return `<div class="feed-item">
+      <div class="feed-icon">${feedIcon(e.event_type)}</div>
+      <div class="feed-body">
+        <div class="feed-message">${escHtml(e.message)}</div>
+        ${e.image_url ? `<img class="feed-image" src="${escHtml(e.image_url)}" alt="Publication">` : ''}
+        <div class="feed-meta">${date}${pts ? ` · ${pts > 0 ? '+' : ''}${pts} pts` : ''}</div>
+        <button class="comment-toggle" type="button" onclick="toggleCommentBox(${e.id})">💬 Commenter${comments.length ? ` (${comments.length})` : ''}</button>
+        <div class="feed-comments" id="comments-${e.id}">${commentsHtml}</div>
+        <div class="comment-box" id="comment-box-${e.id}">
+          <div class="comment-input-row">
+            <input class="field" id="comment-input-${e.id}" placeholder="Écrire un commentaire…" />
+            <button class="comment-send-btn" type="button" onclick="submitFeedComment(${e.id})">↗</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function toggleCommentBox(feedId) {
+    const box = document.getElementById(`comment-box-${feedId}`);
+    if (!box) return;
+    box.classList.toggle('show');
+    const input = document.getElementById(`comment-input-${feedId}`);
+    if (box.classList.contains('show') && input) setTimeout(() => input.focus(), 80);
+  }
+
+  async function submitFeedComment(feedId) {
+    const input = document.getElementById(`comment-input-${feedId}`);
+    const message = (input?.value || '').trim();
+    if (!message) return;
+    const { error } = await sb.from('feed_comments').insert({
+      feed_event_id: feedId,
+      user_id: currentUser.id,
+      message
+    });
+    if (error) return showToast('Commentaire impossible');
+    input.value = '';
+    showToast('Commentaire publié 💬');
+    await loadAppData();
+    renderFeed();
+  }
+
+  function previewFeedPhoto(file) {
+    const img = document.getElementById('feedPhotoPreview');
+    if (!img) return;
+    if (!file) {
+      img.removeAttribute('src');
+      img.classList.remove('show');
+      return;
+    }
+    img.src = URL.createObjectURL(file);
+    img.classList.add('show');
+  }
+
+  async function uploadFeedPostImage(file) {
+    if (!file || !currentUser) return null;
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const filePath = `${currentUser.id}/post-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await sb.storage
+      .from('feed_posts')
+      .upload(filePath, file, { upsert: true, cacheControl: '3600' });
+
+    if (uploadError) {
+      showToast('Erreur photo feed');
+      return null;
+    }
+
+    const { data } = sb.storage.from('feed_posts').getPublicUrl(filePath);
+    return data.publicUrl;
+  }
+
+  async function publishFeedPost() {
+    const textEl = document.getElementById('feedPostText');
+    const fileEl = document.getElementById('feedPostFile');
+    const message = (textEl?.value || '').trim();
+    const file = fileEl?.files?.[0] || null;
+
+    if (!message && !file) return showToast('Ajoute un message ou une photo');
+
+    document.getElementById('publishFeedPostBtn').disabled = true;
+    showToast('Publication en cours...');
+
+    const imageUrl = file ? await uploadFeedPostImage(file) : null;
+    if (file && !imageUrl) {
+      document.getElementById('publishFeedPostBtn').disabled = false;
+      return;
+    }
+
+    const finalMessage = message || '📷 Nouvelle photo partagée';
+    const { error } = await sb.from('feed_events').insert({
+      user_id: currentUser.id,
+      event_type: 'user_post',
+      message: `${myProfile?.pseudo || 'Un joueur'} : ${finalMessage}`,
+      image_url: imageUrl,
+      points: 0
+    });
+
+    document.getElementById('publishFeedPostBtn').disabled = false;
+
+    if (error) return showToast('Publication impossible');
+
+    textEl.value = '';
+    if (fileEl) fileEl.value = '';
+    previewFeedPhoto(null);
+    showToast('Publié dans le Feed 🔥');
+    await loadAppData();
+    renderFeed();
+  }
+
+  function renderFeed() {
+    const global = allFeedEvents.slice(0, 40);
+    const globalEl = document.getElementById('globalFeedList');
+    if (globalEl) {
+      globalEl.innerHTML = global.map(feedItemHtml).join('') || '<div class="list-empty">Aucune activité pour le moment</div>';
+    }
+  }
+
+  async function loadLeaderboard() {
+    await loadAppData();
+    renderLeaderboard();
+    renderWeeklyChampions();
+    showToast('Classement actualisé');
+  }
+
+  async function refreshFeed() {
+    await loadAppData();
+    renderAll();
+    showToast('Feed actualisé');
+  }
+
+  function renderOnboardingStatus() {
+    const completed = !!myOnboardingBonus?.completed;
+    const score = Number(myOnboardingBonus?.score || 0);
+    const feedBtn = document.getElementById('feedOnboardingBtn');
+    const settingsBtn = document.getElementById('settingsOnboardingBtn');
+
+    document.getElementById('feedOnboardingTitle').textContent = completed ? 'Questionnaire complété ✅' : 'Questionnaire de départ à remplir';
+    document.getElementById('feedOnboardingText').textContent = completed ? `Score d’équilibrage : ${score > 0 ? '+' : ''}${score} pts` : 'Tu peux le remplir maintenant ou plus tard depuis les réglages.';
+    if (feedBtn) { feedBtn.textContent = completed ? 'Validé' : 'Remplir'; feedBtn.disabled = completed; }
+
+    document.getElementById('onboardingSettingsStatus').textContent = completed ? 'Statut : Complété ✅' : 'Statut : Non complété';
+    document.getElementById('onboardingSettingsScore').textContent = completed ? `Score obtenu : ${score > 0 ? '+' : ''}${score} pts` : 'Score : pas encore calculé';
+    if (settingsBtn) { settingsBtn.textContent = completed ? 'Déjà validé' : 'Remplir maintenant'; settingsBtn.disabled = completed; }
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+    if (name === 'feed') { loadAppData().then(renderAll); }
+    if (name === 'lb') { loadAppData().then(renderAll); }
+    if (name === 'settings') { renderSettings(); renderOnboardingStatus(); }
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('signupBtn').addEventListener('click', signup);
+  document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+  document.getElementById('chooseAvatarBtn').addEventListener('click', () => document.getElementById('avatarFile').click());
+  document.getElementById('avatarFile').addEventListener('change', (e) => uploadAvatar(e.target.files?.[0]));
+  document.getElementById('deleteLastBtn').addEventListener('click', deleteLastSession);
+  document.getElementById('signoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); window.location.reload(); });
+  document.querySelectorAll('.seg-btn').forEach(btn => btn.addEventListener('click', () => {
+    prefs.theme = btn.dataset.theme;
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    applyTheme(prefs.theme);
+  }));
+
+  document.getElementById('chooseFeedPhotoBtn').addEventListener('click', () => document.getElementById('feedPostFile').click());
+  document.getElementById('feedPostFile').addEventListener('change', (e) => previewFeedPhoto(e.target.files?.[0]));
+  document.getElementById('publishFeedPostBtn').addEventListener('click', publishFeedPost);
+
+  init();
+</script>
+</body>
+</html>
